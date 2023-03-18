@@ -1,3 +1,5 @@
+import { createNoise2D } from "https://unpkg.com/simplex-noise@4.0.1/dist/esm/simplex-noise.js";
+
 // Utility function to generate a random number within a range
 function randomRange(min, max) {
   return Math.random() * (max - min) + min;
@@ -31,12 +33,14 @@ function hslToRgb(h, s, l) {
 export default class Particles {
   constructor(
     canvas,
-    particleCount = window.innerWidth * window.innerHeight * 0.015
+    particleCount = window.innerWidth * window.innerHeight * 0.01
   ) {
     this.canvas = canvas;
     this.particleCount = particleCount;
     this.ctx = this.canvas.getContext("2d");
-    this.easingFactor = 0.05;
+    this.easingFactor = 0.06;
+    this.noise2d = createNoise2D();
+    this.noiseScale = 0.01;
 
     this.initializeParticles();
   }
@@ -46,7 +50,12 @@ export default class Particles {
     for (let i = 0; i < this.particleCount; i++) {
       const size = randomRange(0.5, 2);
       const angle = randomRange(0, 2 * Math.PI);
-      const radius = randomRange(10, 5000);
+      const angleSpeed =
+        randomRange(0.001, 0.01) * (Math.random() > 0.5 ? 1 : -1);
+      const radius = randomRange(
+        10,
+        Math.min(window.innerWidth, window.innerHeight)
+      );
       const radiusRange = randomRange(10, 100);
       const minRadius = Math.max(radius - radiusRange / 2, 100);
       const maxRadius = radius + radiusRange / 2;
@@ -64,6 +73,7 @@ export default class Particles {
         z,
         size,
         angle,
+        angleSpeed,
         radius,
         minRadius,
         maxRadius,
@@ -84,12 +94,34 @@ export default class Particles {
     this.canvas.height = window.innerHeight * 2;
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+    const minDistanceToTarget = 50; // Minimum distance to target before changing direction
+
     for (const particle of this.particles) {
+      // Add noise to the target position updates
+      const noiseX = this.noise2d(
+        particle.x * this.noiseScale,
+        particle.y * this.noiseScale
+      );
+      const noiseY = this.noise2d(
+        particle.y * this.noiseScale,
+        particle.x * this.noiseScale
+      );
       // Ease the particle towards the new target position
-      const dx = x - particle.targetX;
-      const dy = y - particle.targetY;
-      particle.targetX += dx * this.easingFactor;
-      particle.targetY += dy * this.easingFactor;
+      const dx = x - particle.targetX + noiseX * 400;
+      const dy = y - particle.targetY + noiseY * 400;
+      particle.targetX += dx * (Math.random() * this.easingFactor);
+      particle.targetY += dy * (Math.random() * this.easingFactor);
+
+      // Check the distance between the current position and the target position
+      const targetDistance = Math.sqrt(
+        Math.pow(particle.x - particle.targetX, 2) +
+          Math.pow(particle.y - particle.targetY, 2)
+      );
+
+      // If the particle is too close to the target, reverse its direction
+      if (targetDistance < minDistanceToTarget) {
+        particle.direction *= -1;
+      }
 
       // Update the particle's position based on the eased target position
       const dTheta = particle.speed * particle.direction * liveliness;
@@ -112,11 +144,7 @@ export default class Particles {
       particle.speed =
         Math.pow(randomRange(0.01, 0.05), 2) *
         (1 - Math.abs(radiusDiff) / (particle.maxRadius - particle.minRadius));
-      particle.angle +=
-        particle.speed *
-        particle.direction *
-        liveliness *
-        (1 + Math.random() * 0.1 - 0.05);
+      particle.angle += particle.angleSpeed * liveliness;
       particle.z +=
         particle.zSpeed *
         particle.zDirection *
@@ -138,13 +166,11 @@ export default class Particles {
       const hue = (distanceFromCenter / maxDistance) * 360;
       const saturation = 1;
       const lightness = 1 - py / this.canvas.height;
+      const alpha =
+        1 - Math.min(1, (targetDistance - minDistanceToTarget) / 1000);
 
       // Convert HSL to RGB
       const [r, g, b] = hslToRgb(hue, saturation, lightness);
-      const alpha =
-        distanceFromCenter < 100
-          ? Math.min(1, distanceFromCenter / 100)
-          : Math.max(0, 1 - distanceFromCenter / 1000);
 
       // Draw the particle
       this.ctx.beginPath();
