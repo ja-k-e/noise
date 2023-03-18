@@ -1,3 +1,5 @@
+const PARTICLE_COUNT = 48000;
+
 export default class Particles {
   constructor(canvas) {
     this.canvas = canvas;
@@ -20,17 +22,21 @@ uniform float u_liveliness;
 uniform float u_friction;
 uniform float u_canvasWidth;
 uniform float u_canvasHeight;
+uniform float u_particleSize;
 varying float v_alpha;
+
 
 void main() {
   float age = u_time - a_startTime;
 
   // Calculate the force towards the target
   vec2 direction = normalize(u_target - a_position);
-  vec2 force = direction * u_liveliness * age;
+  // vec2 force = direction * u_liveliness * age;
+  vec2 force = direction * u_liveliness;
 
   // Apply friction to the velocity
-  vec2 frictionedVelocity = a_velocity * pow(u_friction, age);
+  // vec2 frictionedVelocity = a_velocity * pow(u_friction, age);
+  vec2 frictionedVelocity = a_velocity * u_friction;
 
   // Calculate the angle for swirling
   float angle = a_randomAngle + u_time * u_liveliness * a_swirlDirection;
@@ -49,7 +55,7 @@ void main() {
 
   // Apply the position
   gl_Position = vec4(position, 0, 1);
-  gl_PointSize = a_size;
+  gl_PointSize = u_particleSize * a_size;
 }
 `;
 
@@ -88,6 +94,11 @@ void main() {
     this.canvasHeightLocation = this.gl.getUniformLocation(
       this.program,
       "u_canvasHeight"
+    );
+    this.sizeLocation = this.gl.getAttribLocation(this.program, "a_size");
+    this.particleSizeLocation = this.gl.getUniformLocation(
+      this.program,
+      "u_particleSize"
     );
 
     this.positionLocation = this.gl.getAttribLocation(
@@ -133,26 +144,28 @@ void main() {
     );
 
     // Buffers
-    this.positions = new Float32Array(3000 * 2);
-    let velocities = new Float32Array(3000 * 2);
-    this.startTimes = new Float32Array(3000);
-    let randomAngles = new Float32Array(3000);
-    let swirlRadii = new Float32Array(3000); // Add this line
-    let swirlDirections = new Float32Array(3000); // Add this line
+    this.positions = new Float32Array(PARTICLE_COUNT * 2);
+    let velocities = new Float32Array(PARTICLE_COUNT * 2);
+    this.startTimes = new Float32Array(PARTICLE_COUNT);
+    let randomAngles = new Float32Array(PARTICLE_COUNT);
+    let swirlRadii = new Float32Array(PARTICLE_COUNT); // Add this line
+    let swirlDirections = new Float32Array(PARTICLE_COUNT); // Add this line
+    let sizes = new Float32Array(PARTICLE_COUNT);
 
-    for (let i = 0; i < 3000; i++) {
-      this.positions[i * 2] = (Math.random() - 0.5) * 2;
-      this.positions[i * 2 + 1] = (Math.random() - 0.5) * 2;
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      this.positions[i * 2] = (Math.random() - 0.5) * 3;
+      this.positions[i * 2 + 1] = (Math.random() - 0.5) * 3;
 
       let angle = Math.random() * Math.PI * 2;
       let speed = Math.random() * 0.01;
       velocities[i * 2] = Math.cos(angle) * speed;
       velocities[i * 2 + 1] = Math.sin(angle) * speed;
 
-      this.startTimes[i] = 0; //Math.random() * 10;
-      randomAngles[i] = Math.random() * 4.0 * Math.PI - 2.0 * Math.PI;
+      this.startTimes[i] = Math.random() * 10;
+      randomAngles[i] = Math.random() * 2.0 * Math.PI;
       swirlRadii[i] = Math.random() * 0.2 + 0.1; // Generate random swirl radius, change range as needed
       swirlDirections[i] = Math.random() > 0.5 ? 1.0 : -1.0; // Add this line
+      sizes[i] = Math.random() * 10 + 1;
     }
 
     this.positionBuffer = this.gl.createBuffer();
@@ -178,6 +191,10 @@ void main() {
     this.swirlRadiusBuffer = this.gl.createBuffer(); // Add this line
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.swirlRadiusBuffer); // Add this line
     this.gl.bufferData(this.gl.ARRAY_BUFFER, swirlRadii, this.gl.STATIC_DRAW); // Add this line
+
+    this.sizeBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.sizeBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, sizes, this.gl.STATIC_DRAW);
 
     this.velocityBuffer = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.velocityBuffer);
@@ -224,6 +241,7 @@ void main() {
 
     // Set the particle color uniform
     this.gl.uniform4fv(this.particleColorLocation, particleColor);
+    this.gl.uniform1f(this.particleSizeLocation, 0.3); // Change this value to adjust the particle size
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.swirlDirectionBuffer);
     this.gl.enableVertexAttribArray(
@@ -231,6 +249,17 @@ void main() {
     );
     this.gl.vertexAttribPointer(
       this.gl.getAttribLocation(this.program, "a_swirlDirection"),
+      1,
+      this.gl.FLOAT,
+      false,
+      0,
+      0
+    );
+
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.sizeBuffer);
+    this.gl.enableVertexAttribArray(this.sizeLocation);
+    this.gl.vertexAttribPointer(
+      this.sizeLocation,
       1,
       this.gl.FLOAT,
       false,
@@ -265,7 +294,7 @@ void main() {
     );
 
     // Update start times for off-screen particles
-    for (let i = 0; i < 3000; i++) {
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
       const position = {
         x: 2 * x - 1 + this.positions[i * 2],
         y: 1 - 2 * y + this.positions[i * 2 + 1],
@@ -316,6 +345,6 @@ void main() {
     );
 
     // Draw the particles
-    this.gl.drawArrays(this.gl.POINTS, 0, 3000);
+    this.gl.drawArrays(this.gl.POINTS, 0, PARTICLE_COUNT);
   }
 }

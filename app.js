@@ -1,6 +1,6 @@
 import MusicalScale from "https://unpkg.com/musical-scale@1.0.4/index.js";
 import NoteToFrequency from "./NoteToFrequency.js";
-import Particles from "./Particles.js?ass";
+import Particles from "./Particles.js?asss";
 
 const canvas = document.querySelector("canvas");
 canvas.height = window.innerHeight;
@@ -12,37 +12,96 @@ let audioContext;
 let mainNode;
 let x = 0;
 let y = 0;
-const scale = new MusicalScale({ root: "C", mode: "ionian" });
+let i = 0;
+const scale = new MusicalScale({ root: "A", mode: "locrian" });
 const noteToFrequency = new NoteToFrequency();
 
-canvas.addEventListener("click", onCanvasTap);
+document.body.addEventListener("click", onCanvasTap);
 console.log(scale);
 
 function onCanvasTap(event) {
   if (!audioContext) {
+    document.body.style.cursor = "none";
     audioContext = new AudioContext();
-    mainNode = audioContext.createGain();
-    mainNode.connect(audioContext.destination);
-    mainNode.gain.setValueAtTime(0.75, audioContext.currentTime);
+    const gainNode = audioContext.createGain();
+    gainNode.connect(audioContext.destination);
+    gainNode.gain.setValueAtTime(0.75, audioContext.currentTime);
+    const lowPassFilterNode = audioContext.createBiquadFilter();
+    lowPassFilterNode.type = "lowpass";
+    lowPassFilterNode.frequency.value = 1000; // Set your
+    lowPassFilterNode.connect(gainNode);
+    mainNode = lowPassFilterNode;
     tick();
+    document.body.addEventListener("touchmove", (e) => {
+      x = e.touches[0].clientX / window.innerWidth;
+      y = e.touches[0].clientY / window.innerHeight;
+    });
+    document.body.addEventListener("mousemove", (e) => {
+      x = e.clientX / window.innerWidth;
+      y = e.clientY / window.innerHeight;
+    });
   }
   x = event.clientX / window.innerWidth;
   y = event.clientY / window.innerHeight;
 }
 
-function tick(timestamp) {
+function tick() {
   requestAnimationFrame(tick);
-  particles.drawParticles(x, y, 0.7, [1, 1, 0, 1]);
+  const [r, g, b] = hslToRgb(x * 360, 1, (1 - y) * 0.7 + 0.1);
+  particles.drawParticles(x, y, 0.8, [r, g, b, 1]);
+  if (i % 10 === 0) {
+    mainNode.frequency.linearRampToValueAtTime(
+      Math.pow(1 - y, 2) * 20000 + 50,
+      audioContext.currentTime + 0.1
+    );
+  }
+  i++;
 
   const interval = scale.intervals[Math.floor(x * 7)];
   if (Math.random() > 0.9) {
-    const note = interval.notes[Math.floor(Math.random() * 3)].notation + "5";
+    const { notation, octave } = interval.notes[Math.floor(Math.random() * 3)];
+    const note = notation + (5 + octave);
     playSound({ note, length: Math.random() * 0.5 + 0.1, type: "sawtooth" });
   }
+  if (Math.random() > 0.97) {
+    const { notation, octave } = interval.notes[Math.floor(Math.random() * 3)];
+    const note = notation + (6 + octave);
+    playSound({
+      note,
+      level: 0.02,
+      length: Math.random() * 0.2 + 0.1,
+      type: "square",
+    });
+  }
   if (Math.random() > 0.99) {
-    const note = interval.notes[Math.floor(Math.random() * 3)].notation + "3";
+    const { notation, octave } = interval.notes[Math.floor(Math.random() * 3)];
+    const note = notation + (2 + octave);
     playSound({ note, length: 1.5, level: 0.2, type: "triangle" });
   }
+}
+
+function hslToRgb(h, s, l) {
+  if (s === 0) {
+    // If the saturation is 0, it's a shade of gray
+    return [l, l, l];
+  }
+
+  const hueToRgb = (p, q, t) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const r = hueToRgb(p, q, h / 360 + 1 / 3);
+  const g = hueToRgb(p, q, h / 360);
+  const b = hueToRgb(p, q, h / 360 - 1 / 3);
+
+  return [r, g, b];
 }
 
 function playSound({
@@ -86,7 +145,7 @@ function playSound({
 
   // Connect the oscillator to the gain node and the gain node to the output
   oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
+  gainNode.connect(mainNode);
 
   // Start the oscillator
   oscillator.start(audioContext.currentTime);
@@ -98,7 +157,7 @@ function playSound({
   function onOscillatorEnded() {
     oscillator.removeEventListener("ended", onOscillatorEnded);
     oscillator.disconnect(gainNode);
-    gainNode.disconnect(audioContext.destination);
+    gainNode.disconnect(mainNode);
   }
 
   // Add the event listener for the 'ended' event to call the cleanup function
