@@ -1,4 +1,4 @@
-const PARTICLE_COUNT = 48000;
+const PARTICLE_COUNT = 96000;
 
 export default class Particles {
   constructor(canvas) {
@@ -31,8 +31,8 @@ void main() {
 
   // Calculate the force towards the target
   vec2 direction = normalize(u_target - a_position);
-  // vec2 force = direction * u_liveliness * age;
-  vec2 force = direction * u_liveliness;
+  vec2 force = direction * u_liveliness * age;
+  // vec2 force = direction * u_liveliness;
 
   // Apply friction to the velocity
   // vec2 frictionedVelocity = a_velocity * pow(u_friction, age);
@@ -152,12 +152,27 @@ void main() {
     let swirlDirections = new Float32Array(PARTICLE_COUNT); // Add this line
     let sizes = new Float32Array(PARTICLE_COUNT);
 
+    function randomPointInCircle(radius) {
+      // Generate a random angle
+      const angle = Math.random() * 2 * Math.PI;
+
+      // Generate a random radius within the given range
+      const r = Math.sqrt(Math.random()) * radius;
+
+      // Calculate the x and y coordinates
+      const x = r * Math.cos(angle);
+      const y = r * Math.sin(angle);
+
+      return { x, y };
+    }
+
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      this.positions[i * 2] = (Math.random() - 0.5) * 3;
-      this.positions[i * 2 + 1] = (Math.random() - 0.5) * 3;
+      const { x, y } = randomPointInCircle(0.5);
+      this.positions[i * 2] = x * 2;
+      this.positions[i * 2 + 1] = y * 2;
 
       let angle = Math.random() * Math.PI * 2;
-      let speed = Math.random() * 0.01;
+      let speed = Math.random() * 0.1;
       velocities[i * 2] = Math.cos(angle) * speed;
       velocities[i * 2 + 1] = Math.sin(angle) * speed;
 
@@ -241,7 +256,7 @@ void main() {
 
     // Set the particle color uniform
     this.gl.uniform4fv(this.particleColorLocation, particleColor);
-    this.gl.uniform1f(this.particleSizeLocation, 0.3); // Change this value to adjust the particle size
+    this.gl.uniform1f(this.particleSizeLocation, 0.1); // Change this value to adjust the particle size
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.swirlDirectionBuffer);
     this.gl.enableVertexAttribArray(

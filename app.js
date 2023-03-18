@@ -21,15 +21,31 @@ console.log(scale);
 
 function onCanvasTap(event) {
   if (!audioContext) {
+    document.querySelector("h1").remove();
     document.body.style.cursor = "none";
     audioContext = new AudioContext();
     const gainNode = audioContext.createGain();
     gainNode.connect(audioContext.destination);
     gainNode.gain.setValueAtTime(0.75, audioContext.currentTime);
+
+    const delayGainNode = audioContext.createGain();
+    delayGainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+    const delayNode = audioContext.createDelay();
+    delayNode.delayTime.value = 0.3; // Set delay time in seconds
+    const hiPassFilterNode = audioContext.createBiquadFilter();
+    hiPassFilterNode.type = "highpass";
+    hiPassFilterNode.frequency.value = 1400; // Set your
+
     const lowPassFilterNode = audioContext.createBiquadFilter();
     lowPassFilterNode.type = "lowpass";
     lowPassFilterNode.frequency.value = 1000; // Set your
+
+    lowPassFilterNode.connect(delayNode);
     lowPassFilterNode.connect(gainNode);
+    delayNode.connect(delayGainNode);
+    delayGainNode.connect(hiPassFilterNode);
+    hiPassFilterNode.connect(gainNode);
+
     mainNode = lowPassFilterNode;
     tick();
     document.body.addEventListener("touchmove", (e) => {
