@@ -66,7 +66,11 @@ function onCanvasTap(event) {
 
 function tick() {
   requestAnimationFrame(tick);
-  particles.drawParticles(x * canvas.width, y * canvas.height, 1.8);
+  particles.drawParticles(
+    x * canvas.width,
+    y * canvas.height,
+    (1 - y) * 8 + 0.5
+  );
   if (i % 10 === 0) {
     mainNode.frequency.linearRampToValueAtTime(
       Math.pow(1 - y, 2) * 20000 + 50,
