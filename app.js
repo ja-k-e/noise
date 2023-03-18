@@ -1,6 +1,6 @@
 import MusicalScale from "https://unpkg.com/musical-scale@1.0.4/index.js";
 import NoteToFrequency from "./NoteToFrequency.js";
-import Particles from "./Particles.js";
+import Particles from "./Particles.js?ass";
 
 const canvas = document.querySelector("canvas");
 canvas.height = window.innerHeight;
@@ -32,7 +32,7 @@ function onCanvasTap(event) {
 
 function tick(timestamp) {
   requestAnimationFrame(tick);
-  particles.drawParticles(x, y, 0.1, [1, 0, 0, 1]);
+  particles.drawParticles(x, y, 0.7, [1, 1, 0, 1]);
 
   const interval = scale.intervals[Math.floor(x * 7)];
   if (Math.random() > 0.9) {

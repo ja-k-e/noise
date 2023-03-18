@@ -9,25 +9,21 @@ attribute vec2 a_position;
 attribute vec2 a_velocity;
 attribute float a_startTime;
 attribute float a_size;
+attribute float a_randomAngle;
+attribute float a_swirlRadius;
+attribute float a_swirlDirection;
+
 
 uniform float u_time;
 uniform vec2 u_target;
 uniform float u_liveliness;
 uniform float u_friction;
-uniform float u_ageThreshold;
+uniform float u_canvasWidth;
+uniform float u_canvasHeight;
 varying float v_alpha;
-varying float v_updatedStartTime;
 
 void main() {
   float age = u_time - a_startTime;
-
-  // Reset the particle age if it exceeds the age threshold
-  // if (age > u_ageThreshold) {
-  //   age = 0.0;
-  //   // Pass the updated start time to the fragment shader
-  //   float updatedStartTime = age > u_ageThreshold ? u_time : a_startTime;
-  //   gl_PointSize = a_size;
-  // }
 
   // Calculate the force towards the target
   vec2 direction = normalize(u_target - a_position);
@@ -36,14 +32,14 @@ void main() {
   // Apply friction to the velocity
   vec2 frictionedVelocity = a_velocity * pow(u_friction, age);
 
-  // Calculate the current position with the force and friction applied
-  vec2 position = a_position + frictionedVelocity * age + force;
+  // Calculate the angle for swirling
+  float angle = a_randomAngle + u_time * u_liveliness * a_swirlDirection;
 
-  // Reset the particle position and start time if out of bounds
-  if (position.x < -1.0 || position.x > 1.0 || position.y < -1.0 || position.y > 1.0) {
-    position = a_position;
-    age = 0.0;
-  }
+  // Calculate the swirling position
+  vec2 swirlPosition = u_target + a_swirlRadius * vec2(cos(angle), sin(angle));
+
+  // Calculate the current position with the force, friction, and swirl applied
+  vec2 position = a_position + frictionedVelocity * age + force + (swirlPosition - u_target) * age;
 
   // Calculate the distance from the target
   float distance = length(position - u_target);
@@ -55,7 +51,7 @@ void main() {
   gl_Position = vec4(position, 0, 1);
   gl_PointSize = a_size;
 }
-    `;
+`;
 
     let vertexShader = this.gl.createShader(this.gl.VERTEX_SHADER);
     this.gl.shaderSource(vertexShader, vertexShaderSrc);
@@ -85,9 +81,22 @@ void main() {
     this.gl.linkProgram(this.program);
 
     // Attributes and uniforms
+    this.canvasWidthLocation = this.gl.getUniformLocation(
+      this.program,
+      "u_canvasWidth"
+    );
+    this.canvasHeightLocation = this.gl.getUniformLocation(
+      this.program,
+      "u_canvasHeight"
+    );
+
     this.positionLocation = this.gl.getAttribLocation(
       this.program,
       "a_position"
+    );
+    this.randomAngleLocation = this.gl.getAttribLocation(
+      this.program,
+      "a_randomAngle"
     );
     this.velocityLocation = this.gl.getAttribLocation(
       this.program,
@@ -99,14 +108,14 @@ void main() {
     );
     this.timeLocation = this.gl.getUniformLocation(this.program, "u_time");
     this.targetLocation = this.gl.getUniformLocation(this.program, "u_target");
+    this.swirlRadiusLocation = this.gl.getUniformLocation(
+      this.program,
+      "u_swirlRadius"
+    );
     // Add friction and age threshold uniforms
     this.frictionLocation = this.gl.getUniformLocation(
       this.program,
       "u_friction"
-    );
-    this.ageThresholdLocation = this.gl.getUniformLocation(
-      this.program,
-      "u_ageThreshold"
     );
 
     this.livelinessLocation = this.gl.getUniformLocation(
@@ -124,25 +133,51 @@ void main() {
     );
 
     // Buffers
-    let positions = new Float32Array(2000 * 2);
-    let velocities = new Float32Array(2000 * 2);
-    this.startTimes = new Float32Array(2000);
+    this.positions = new Float32Array(3000 * 2);
+    let velocities = new Float32Array(3000 * 2);
+    this.startTimes = new Float32Array(3000);
+    let randomAngles = new Float32Array(3000);
+    let swirlRadii = new Float32Array(3000); // Add this line
+    let swirlDirections = new Float32Array(3000); // Add this line
 
-    for (let i = 0; i < 2000; i++) {
-      positions[i * 2] = (Math.random() - 0.5) * 2;
-      positions[i * 2 + 1] = (Math.random() - 0.5) * 2;
+    for (let i = 0; i < 3000; i++) {
+      this.positions[i * 2] = (Math.random() - 0.5) * 2;
+      this.positions[i * 2 + 1] = (Math.random() - 0.5) * 2;
 
       let angle = Math.random() * Math.PI * 2;
       let speed = Math.random() * 0.01;
       velocities[i * 2] = Math.cos(angle) * speed;
       velocities[i * 2 + 1] = Math.sin(angle) * speed;
 
-      this.startTimes[i] = Math.random() * 10;
+      this.startTimes[i] = 0; //Math.random() * 10;
+      randomAngles[i] = Math.random() * 4.0 * Math.PI - 2.0 * Math.PI;
+      swirlRadii[i] = Math.random() * 0.2 + 0.1; // Generate random swirl radius, change range as needed
+      swirlDirections[i] = Math.random() > 0.5 ? 1.0 : -1.0; // Add this line
     }
 
     this.positionBuffer = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
+    this.gl.bufferData(
+      this.gl.ARRAY_BUFFER,
+      this.positions,
+      this.gl.STATIC_DRAW
+    );
+
+    this.swirlDirectionBuffer = this.gl.createBuffer(); // Add this line
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.swirlDirectionBuffer); // Add this line
+    this.gl.bufferData(
+      this.gl.ARRAY_BUFFER,
+      swirlDirections,
+      this.gl.STATIC_DRAW
+    ); // Add this line
+
+    this.randomAngleBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.randomAngleBuffer);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, randomAngles, this.gl.STATIC_DRAW);
+
+    this.swirlRadiusBuffer = this.gl.createBuffer(); // Add this line
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.swirlRadiusBuffer); // Add this line
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, swirlRadii, this.gl.STATIC_DRAW); // Add this line
 
     this.velocityBuffer = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.velocityBuffer);
@@ -173,29 +208,44 @@ void main() {
     // Set the time uniform
     this.gl.uniform1f(this.timeLocation, performance.now() / 1000);
 
+    this.gl.uniform1f(this.canvasWidthLocation, this.canvas.width);
+    this.gl.uniform1f(this.canvasHeightLocation, this.canvas.height);
     // Set the friction uniform
     this.gl.uniform1f(this.frictionLocation, 0.99); // Adjust this value for more or less friction
-
-    // Set the age threshold uniform
-    this.gl.uniform1f(this.ageThresholdLocation, 10.0); // Adjust this value for a different age threshold
 
     this.gl.uniform1fv(this.updatedStartTimeLocation, this.startTimes);
 
     // Set the target uniform
     this.gl.uniform2f(this.targetLocation, x * 2 - 1, 1 - y * 2);
-
+    // Set the swirl radius
+    this.gl.uniform1f(this.swirlRadius, 0.1);
     // Set the liveliness uniform
     this.gl.uniform1f(this.livelinessLocation, liveliness);
 
     // Set the particle color uniform
     this.gl.uniform4fv(this.particleColorLocation, particleColor);
 
-    // Set up the position attribute
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
-    this.gl.enableVertexAttribArray(this.positionLocation);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.swirlDirectionBuffer);
+    this.gl.enableVertexAttribArray(
+      this.gl.getAttribLocation(this.program, "a_swirlDirection")
+    );
     this.gl.vertexAttribPointer(
-      this.positionLocation,
-      2,
+      this.gl.getAttribLocation(this.program, "a_swirlDirection"),
+      1,
+      this.gl.FLOAT,
+      false,
+      0,
+      0
+    );
+
+    // Set up the swirl radius attribute // Add these lines
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.swirlRadiusBuffer);
+    this.gl.enableVertexAttribArray(
+      this.gl.getAttribLocation(this.program, "a_swirlRadius")
+    );
+    this.gl.vertexAttribPointer(
+      this.gl.getAttribLocation(this.program, "a_swirlRadius"),
+      1,
       this.gl.FLOAT,
       false,
       0,
@@ -214,6 +264,45 @@ void main() {
       0
     );
 
+    // Update start times for off-screen particles
+    for (let i = 0; i < 3000; i++) {
+      const position = {
+        x: 2 * x - 1 + this.positions[i * 2],
+        y: 1 - 2 * y + this.positions[i * 2 + 1],
+      };
+      const offScreen =
+        position.x < -1.0 ||
+        position.x > 1.0 ||
+        position.y < -1.0 ||
+        position.y > 1.0;
+
+      if (offScreen) {
+        this.startTimes[i] = performance.now() / 1000;
+        this.positions[i * 2] = (Math.random() - 0.5) * 2;
+        this.positions[i * 2 + 1] = (Math.random() - 0.5) * 2;
+      }
+    }
+
+    // Set up the position attribute
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
+    this.gl.enableVertexAttribArray(this.positionLocation);
+    this.gl.vertexAttribPointer(
+      this.positionLocation,
+      2,
+      this.gl.FLOAT,
+      false,
+      0,
+      0
+    );
+
+    // Upload the updated start times to the GPU
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.startTimeBuffer);
+    this.gl.bufferData(
+      this.gl.ARRAY_BUFFER,
+      this.startTimes,
+      this.gl.STATIC_DRAW
+    );
+
     // Set up the startTime attribute
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.startTimeBuffer);
     this.gl.enableVertexAttribArray(this.startTimeLocation);
@@ -227,27 +316,6 @@ void main() {
     );
 
     // Draw the particles
-    this.gl.drawArrays(this.gl.POINTS, 0, 2000);
-
-    // Update the start times buffer with the new start times
-    let updatedStartTimes = new Float32Array(2000);
-    this.gl.readPixels(
-      0,
-      0,
-      2000,
-      1,
-      this.gl.RGBA,
-      this.gl.FLOAT,
-      updatedStartTimes
-    );
-    for (let i = 0; i < 2000; i++) {
-      this.startTimes[i] = updatedStartTimes[i * 4];
-    }
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.startTimeBuffer);
-    this.gl.bufferData(
-      this.gl.ARRAY_BUFFER,
-      this.startTimes,
-      this.gl.STATIC_DRAW
-    );
+    this.gl.drawArrays(this.gl.POINTS, 0, 3000);
   }
 }
