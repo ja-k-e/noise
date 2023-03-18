@@ -47,17 +47,18 @@ export default class Particles {
 
   initializeParticles() {
     this.particles = [];
+    const windowMinSize = Math.min(window.innerWidth, window.innerHeight);
     for (let i = 0; i < this.particleCount; i++) {
-      const size = randomRange(0.5, 2);
+      const size = randomRange(0.5, 1);
       const angle = randomRange(0, 2 * Math.PI);
       const angleSpeed =
         randomRange(0.001, 0.01) * (Math.random() > 0.5 ? 1 : -1);
-      const radius = randomRange(
-        10,
-        Math.min(window.innerWidth, window.innerHeight)
+      const radius = randomRange(windowMinSize * 0.001, windowMinSize);
+      const radiusRange = randomRange(
+        windowMinSize * 0.001,
+        windowMinSize * 0.1
       );
-      const radiusRange = randomRange(10, 100);
-      const minRadius = Math.max(radius - radiusRange / 2, 100);
+      const minRadius = radius - radiusRange / 2;
       const maxRadius = radius + radiusRange / 2;
       const speed = randomRange(0.01, 0.05);
       const direction = Math.random() > 0.5 ? 1 : -1;
@@ -156,14 +157,7 @@ export default class Particles {
       const py = particle.y + Math.sin(particle.angle) * particle.radius;
 
       // Calculate the hue, saturation, and lightness
-      const distanceFromCenter = Math.sqrt(
-        Math.pow(px - this.canvas.width / 2, 2) +
-          Math.pow(py - this.canvas.height / 2, 2)
-      );
-      const maxDistance = Math.sqrt(
-        Math.pow(this.canvas.width, 2) + Math.pow(this.canvas.height, 2)
-      );
-      const hue = (distanceFromCenter / maxDistance) * 360;
+      const hue = (px / this.canvas.width) * 360 + 180;
       const saturation = 1;
       const lightness = 1 - py / this.canvas.height;
       const alpha =

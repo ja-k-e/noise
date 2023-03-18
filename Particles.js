@@ -37,7 +37,6 @@ export default class Particles {
   ) {
     this.canvas = canvas;
     this.particleCount = particleCount;
-    this.ctx = this.canvas.getContext("2d");
     this.easingFactor = 0.06;
     this.noise2d = createNoise2D();
     this.noiseScale = 0.01;
@@ -46,18 +45,30 @@ export default class Particles {
   }
 
   initializeParticles() {
+    this.scene = new THREE.Scene();
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    this.camera = new THREE.OrthographicCamera(0, width, 0, height, 0, 10);
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas });
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+
+    // create a geometry with many particles
+    const particleGeometry = new THREE.BufferGeometry();
+    this.positions = [];
+    this.colors = [];
     this.particles = [];
+    const windowMinSize = Math.min(window.innerWidth, window.innerHeight);
     for (let i = 0; i < this.particleCount; i++) {
-      const size = randomRange(0.5, 2);
+      const size = randomRange(0.5, 1);
       const angle = randomRange(0, 2 * Math.PI);
       const angleSpeed =
         randomRange(0.001, 0.01) * (Math.random() > 0.5 ? 1 : -1);
-      const radius = randomRange(
-        10,
-        Math.min(window.innerWidth, window.innerHeight)
+      const radius = randomRange(windowMinSize * 0.001, windowMinSize);
+      const radiusRange = randomRange(
+        windowMinSize * 0.001,
+        windowMinSize * 0.1
       );
-      const radiusRange = randomRange(10, 100);
-      const minRadius = Math.max(radius - radiusRange / 2, 100);
+      const minRadius = radius - radiusRange / 2;
       const maxRadius = radius + radiusRange / 2;
       const speed = randomRange(0.01, 0.05);
       const direction = Math.random() > 0.5 ? 1 : -1;
@@ -65,7 +76,8 @@ export default class Particles {
       const zDirection = Math.random() > 0.5 ? 1 : -1;
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius;
-      const z = randomRange(-1, 1);
+      // const z = randomRange(-1, 1);
+      const z = 0;
 
       const particle = {
         x,
@@ -86,17 +98,39 @@ export default class Particles {
       };
 
       this.particles.push(particle);
+      this.positions.push(x, y, z);
+      this.colors.push(1, 1, 1);
     }
+
+    particleGeometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(this.positions, 3)
+    );
+    particleGeometry.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute(this.colors, 3)
+    );
+
+    // create a material for the particles
+    const particleMaterial = new THREE.PointsMaterial({
+      size: 0.01,
+      vertexColors: true,
+      transparent: true,
+      opacity: 1,
+    });
+
+    // create a particle system and add it to the scene
+    this.points = new THREE.Points(particleGeometry, particleMaterial);
+    this.scene.add(this.points);
   }
 
   drawParticles(x, y, liveliness) {
-    this.canvas.width = window.innerWidth * 2;
-    this.canvas.height = window.innerHeight * 2;
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
 
     const minDistanceToTarget = 50; // Minimum distance to target before changing direction
 
-    for (const particle of this.particles) {
+    for (let i = 0; i < this.particleCount; i++) {
+      const particle = this.particles[i];
       // Add noise to the target position updates
       const noiseX = this.noise2d(
         particle.x * this.noiseScale,
@@ -145,25 +179,18 @@ export default class Particles {
         Math.pow(randomRange(0.01, 0.05), 2) *
         (1 - Math.abs(radiusDiff) / (particle.maxRadius - particle.minRadius));
       particle.angle += particle.angleSpeed * liveliness;
-      particle.z +=
-        particle.zSpeed *
-        particle.zDirection *
-        liveliness *
-        (1 + Math.random() * 0.1 - 0.05);
+      // particle.z +=
+      //   particle.zSpeed *
+      //   particle.zDirection *
+      //   liveliness *
+      //   (1 + Math.random() * 0.1 - 0.05);
 
       // Calculate the new position based on the angle, radius, and center point
       const px = particle.x + Math.cos(particle.angle) * particle.radius;
       const py = particle.y + Math.sin(particle.angle) * particle.radius;
 
       // Calculate the hue, saturation, and lightness
-      const distanceFromCenter = Math.sqrt(
-        Math.pow(px - this.canvas.width / 2, 2) +
-          Math.pow(py - this.canvas.height / 2, 2)
-      );
-      const maxDistance = Math.sqrt(
-        Math.pow(this.canvas.width, 2) + Math.pow(this.canvas.height, 2)
-      );
-      const hue = (distanceFromCenter / maxDistance) * 360;
+      const hue = (px / this.canvas.width) * 360 + 180;
       const saturation = 1;
       const lightness = 1 - py / this.canvas.height;
       const alpha =
@@ -172,13 +199,29 @@ export default class Particles {
       // Convert HSL to RGB
       const [r, g, b] = hslToRgb(hue, saturation, lightness);
 
-      // Draw the particle
-      this.ctx.beginPath();
-      this.ctx.arc(px, py, particle.size, 0, 2 * Math.PI);
-      this.ctx.fillStyle = `rgba(${r * 255},  ${g * 255}, ${
-        b * 255
-      }, ${alpha})`;
-      this.ctx.fill();
+      this.colors[i * 3] = r;
+      this.colors[i * 3 + 1] = g;
+      this.colors[i * 3 + 2] = b;
+
+      // this.positions[i * 3] = x * this.canvas.width;
+      // this.positions[i * 3 + 1] = (1 - y) * this.canvas.height;
+      // this.positions[i * 3 + 2] = particle.z;
+      this.positions[i * 3] = px;
+      this.positions[i * 3 + 1] = py;
+      // this.positions[i * 3 + 2] = particle.z;
+
+      // change the size. and alpha
     }
+    this.points.geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(this.positions, 3)
+    );
+    this.points.geometry.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute(this.colors, 3)
+    );
+    this.points.geometry.attributes.position.needsUpdate = true;
+    this.points.geometry.attributes.color.needsUpdate = true;
+    this.renderer.render(this.scene, this.camera);
   }
 }
