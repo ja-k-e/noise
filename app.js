@@ -1,13 +1,13 @@
 import MusicalScale from "https://unpkg.com/musical-scale@1.0.4/index.js";
 import NoteToFrequency from "./NoteToFrequency.js";
-import Particles from "./Particles.js?asss";
+import Particles from "./Particles.js?a";
 
 const canvas = document.querySelector("canvas");
 canvas.addEventListener("dragstart", (e) => {
   e.preventDefault();
 });
-canvas.height = window.innerHeight;
-canvas.width = window.innerWidth;
+canvas.height = window.innerHeight * 2;
+canvas.width = window.innerWidth * 2;
 
 const particles = new Particles(canvas);
 
@@ -25,7 +25,7 @@ console.log(scale);
 function onCanvasTap(event) {
   if (!audioContext) {
     document.querySelector("h1").remove();
-    document.body.style.cursor = "none";
+    document.body.style.cursor = "crosshair";
     audioContext = new AudioContext();
     const gainNode = audioContext.createGain();
     gainNode.connect(audioContext.destination);
@@ -66,8 +66,7 @@ function onCanvasTap(event) {
 
 function tick() {
   requestAnimationFrame(tick);
-  const [r, g, b] = hslToRgb(x * 360, 1, (1 - y) * 0.7 + 0.1);
-  particles.drawParticles(x, y, 0.8, [r, g, b, 1]);
+  particles.drawParticles(x * canvas.width, y * canvas.height, 1.8);
   if (i % 10 === 0) {
     mainNode.frequency.linearRampToValueAtTime(
       Math.pow(1 - y, 2) * 20000 + 50,
@@ -97,30 +96,6 @@ function tick() {
     const note = notation + (2 + octave);
     playSound({ note, length: 1.5, level: 0.2, type: "triangle" });
   }
-}
-
-function hslToRgb(h, s, l) {
-  if (s === 0) {
-    // If the saturation is 0, it's a shade of gray
-    return [l, l, l];
-  }
-
-  const hueToRgb = (p, q, t) => {
-    if (t < 0) t += 1;
-    if (t > 1) t -= 1;
-    if (t < 1 / 6) return p + (q - p) * 6 * t;
-    if (t < 1 / 2) return q;
-    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-    return p;
-  };
-
-  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-  const p = 2 * l - q;
-  const r = hueToRgb(p, q, h / 360 + 1 / 3);
-  const g = hueToRgb(p, q, h / 360);
-  const b = hueToRgb(p, q, h / 360 - 1 / 3);
-
-  return [r, g, b];
 }
 
 function playSound({
