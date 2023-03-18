@@ -3,6 +3,9 @@ import NoteToFrequency from "./NoteToFrequency.js";
 import Particles from "./Particles.js?asss";
 
 const canvas = document.querySelector("canvas");
+canvas.addEventListener("dragstart", (e) => {
+  e.preventDefault();
+});
 canvas.height = window.innerHeight;
 canvas.width = window.innerWidth;
 
@@ -73,7 +76,7 @@ function tick() {
   }
   i++;
 
-  const interval = scale.intervals[Math.floor(x * 7)];
+  const interval = scale.intervals[Math.floor(Math.max(0, x) * 7)];
   if (Math.random() > 0.9) {
     const { notation, octave } = interval.notes[Math.floor(Math.random() * 3)];
     const note = notation + (5 + octave);
