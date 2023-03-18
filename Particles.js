@@ -37,7 +37,7 @@ export default class Particles {
   ) {
     this.canvas = canvas;
     this.particleCount = particleCount;
-    this.easingFactor = 0.06;
+    this.easingFactor = 0.09;
     this.noise2d = createNoise2D();
     this.noiseScale = 0.01;
 
@@ -48,7 +48,14 @@ export default class Particles {
     this.scene = new THREE.Scene();
     const width = window.innerWidth;
     const height = window.innerHeight;
-    this.camera = new THREE.OrthographicCamera(0, width, 0, height, 0, 10);
+    this.camera = new THREE.OrthographicCamera(
+      0,
+      width,
+      0,
+      height,
+      -10000,
+      10000
+    );
     this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
 
@@ -76,8 +83,7 @@ export default class Particles {
       const zDirection = Math.random() > 0.5 ? 1 : -1;
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius;
-      // const z = randomRange(-1, 1);
-      const z = 0;
+      const z = randomRange(-1, 1);
 
       const particle = {
         x,
@@ -153,9 +159,9 @@ export default class Particles {
       );
 
       // If the particle is too close to the target, reverse its direction
-      if (targetDistance < minDistanceToTarget) {
-        particle.direction *= -1;
-      }
+      // if (targetDistance < minDistanceToTarget) {
+      //   particle.direction *= -1;
+      // }
 
       // Update the particle's position based on the eased target position
       const dTheta = particle.speed * particle.direction * liveliness;
@@ -179,11 +185,11 @@ export default class Particles {
         Math.pow(randomRange(0.01, 0.05), 2) *
         (1 - Math.abs(radiusDiff) / (particle.maxRadius - particle.minRadius));
       particle.angle += particle.angleSpeed * liveliness;
-      // particle.z +=
-      //   particle.zSpeed *
-      //   particle.zDirection *
-      //   liveliness *
-      //   (1 + Math.random() * 0.1 - 0.05);
+      particle.z +=
+        particle.zSpeed *
+        particle.zDirection *
+        liveliness *
+        (1 + Math.random() * 0.1 - 0.05);
 
       // Calculate the new position based on the angle, radius, and center point
       const px = particle.x + Math.cos(particle.angle) * particle.radius;
@@ -192,9 +198,9 @@ export default class Particles {
       // Calculate the hue, saturation, and lightness
       const hue = (px / this.canvas.width) * 360 + 180;
       const saturation = 1;
-      const lightness = 1 - py / this.canvas.height;
-      const alpha =
-        1 - Math.min(1, (targetDistance - minDistanceToTarget) / 1000);
+      const lightness = 1 - (py / this.canvas.height) * 0.8 + 0.1;
+      // const alpha =
+      //   1 - Math.min(1, (targetDistance - minDistanceToTarget) / 1000);
 
       // Convert HSL to RGB
       const [r, g, b] = hslToRgb(hue, saturation, lightness);
@@ -203,14 +209,9 @@ export default class Particles {
       this.colors[i * 3 + 1] = g;
       this.colors[i * 3 + 2] = b;
 
-      // this.positions[i * 3] = x * this.canvas.width;
-      // this.positions[i * 3 + 1] = (1 - y) * this.canvas.height;
-      // this.positions[i * 3 + 2] = particle.z;
       this.positions[i * 3] = px;
       this.positions[i * 3 + 1] = py;
-      // this.positions[i * 3 + 2] = particle.z;
-
-      // change the size. and alpha
+      this.positions[i * 3 + 2] = particle.z;
     }
     this.points.geometry.setAttribute(
       "position",

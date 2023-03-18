@@ -1,13 +1,9 @@
 import MusicalScale from "https://unpkg.com/musical-scale@1.0.4/index.js";
 import NoteToFrequency from "./NoteToFrequency.js";
-import Particles from "./Particles.js";
+import Particles from "./Particles.js?Asdf";
 
 const canvas = document.querySelector("canvas");
-canvas.addEventListener("dragstart", (e) => {
-  e.preventDefault();
-});
-canvas.height = window.innerHeight * 2;
-canvas.width = window.innerWidth * 2;
+canvas.addEventListener("dragstart", (e) => e.preventDefault());
 
 const particles = new Particles(canvas);
 
