@@ -33,7 +33,7 @@ function hslToRgb(h, s, l) {
 export default class Particles {
   constructor(
     canvas,
-    particleCount = window.innerWidth * window.innerHeight * 0.01
+    particleCount = 12000
   ) {
     this.canvas = canvas;
     this.particleCount = particleCount;
