@@ -27,10 +27,20 @@ export default class Sound {
   }
 
   tick(x, y) {
-    const interval = scale.intervals[Math.floor(Math.max(0, x) * 7)];
+    const order = [0, 1, 2, 3, 4, 5, 6];
+    const interval = scale.intervals[order[Math.floor(Math.max(0, x) * 7)]];
     if (!this.interval || interval.notation !== this.interval.notation) {
-      this.interval = interval;
-      this.updateOscillators();
+      if (
+        this.intervalChangeThreshold === undefined ||
+        this.intervalChangeThreshold > 20
+      ) {
+        this.interval = interval;
+        this.updateOscillators();
+        this.intervalChangeThreshold = 0;
+        // console.log("CHANGE TO", interval.notation);
+      } else {
+        this.intervalChangeThreshold++;
+      }
     }
     this.tickFilter(x, y);
     this.i++;
@@ -38,8 +48,8 @@ export default class Sound {
 
   initializeOscillators() {
     this.oscillators = [];
-    for (let i = 2; i < 8; i++) {
-      const type = "sawtooth";
+    for (let i = 1; i < 4; i++) {
+      const type = "triangle";
       for (let j = 0; j < 3; j++) {
         const oscillator = this.ctx.createOscillator();
         oscillator.type = type;
@@ -63,9 +73,9 @@ export default class Sound {
         oscillator.frequency.value = frequency;
         oscillator.start(this.ctx.currentTime);
       } else {
-        oscillator.frequency.linearRampToValueAtTime(
+        oscillator.frequency.exponentialRampToValueAtTime(
           frequency,
-          this.ctx.currentTime + 0.5
+          this.ctx.currentTime + 1.5
         );
       }
     });
@@ -74,7 +84,7 @@ export default class Sound {
   tickFilter(x, y) {
     if (this.i % 10 === 0) {
       this.bandPassFilterNode.frequency.linearRampToValueAtTime(
-        Math.pow(1 - y, 2) * 16000 + 100,
+        Math.pow(1 - y, 2) * 12000 + 100,
         this.ctx.currentTime + 0.1
       );
       this.bandPassFilterNode.Q.linearRampToValueAtTime(
