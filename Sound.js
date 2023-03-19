@@ -86,6 +86,7 @@ export default class Sound {
   }
 
   updateOscillators() {
+    this.oscillatorTimes = this.oscillatorTimes || [];
     this.oscillators.forEach((oscillator, i) => {
       const baseOctave = Math.floor(i / 3) + 2;
       const { notation, octave } = this.interval.notes[i % 3];
@@ -99,9 +100,11 @@ export default class Sound {
         );
         oscillator.start(this.ctx.currentTime);
       } else {
+        const startPoint = this.oscillatorTimes[i] || this.ctx.currentTime;
+        this.oscillatorTimes[i] = startPoint + (Math.random() * 0.5 + 0.25);
         oscillator.frequency.linearRampToValueAtTime(
           frequency,
-          this.ctx.currentTime + (Math.random() * 0.5 + 0.25)
+          this.oscillatorTimes[i]
         );
       }
     });
