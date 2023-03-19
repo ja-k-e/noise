@@ -31,10 +31,7 @@ function hslToRgb(h, s, l) {
 }
 
 export default class Particles {
-  constructor(
-    canvas,
-    particleCount = 12000
-  ) {
+  constructor(canvas, particleCount = 12000) {
     this.canvas = canvas;
     this.particleCount = particleCount;
     this.easingFactor = 0.08;
@@ -119,7 +116,7 @@ export default class Particles {
 
     // create a material for the particles
     const particleMaterial = new THREE.PointsMaterial({
-      size: 0.03,
+      size: 1,
       vertexColors: true,
       transparent: true,
       opacity: 1,
