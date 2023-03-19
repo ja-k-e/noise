@@ -73,9 +73,9 @@ export default class Sound {
         oscillator.frequency.value = frequency;
         oscillator.start(this.ctx.currentTime);
       } else {
-        oscillator.frequency.exponentialRampToValueAtTime(
+        oscillator.frequency.linearRampToValueAtTime(
           frequency,
-          this.ctx.currentTime + 1.5
+          this.ctx.currentTime + 0.5
         );
       }
     });
