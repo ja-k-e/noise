@@ -40,7 +40,7 @@ function tick() {
   particles.drawParticles(
     x * canvas.width,
     y * canvas.height,
-    (1 - y) * 8 + 0.5
+    (1 - y) * 7.75 + 0.25
   );
 
   i++;

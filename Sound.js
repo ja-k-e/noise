@@ -32,7 +32,7 @@ export default class Sound {
     if (!this.interval || interval.notation !== this.interval.notation) {
       if (
         this.intervalChangeThreshold === undefined ||
-        this.intervalChangeThreshold > 20
+        this.intervalChangeThreshold > 12
       ) {
         this.interval = interval;
         this.updateOscillators();

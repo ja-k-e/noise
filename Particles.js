@@ -37,9 +37,9 @@ export default class Particles {
   ) {
     this.canvas = canvas;
     this.particleCount = particleCount;
-    this.easingFactor = 0.09;
+    this.easingFactor = 0.08;
     this.noise2d = createNoise2D();
-    this.noiseScale = 0.01;
+    this.noiseScale = 0.03;
 
     this.initializeParticles();
   }
@@ -70,10 +70,10 @@ export default class Particles {
       const angle = randomRange(0, 2 * Math.PI);
       const angleSpeed =
         randomRange(0.001, 0.01) * (Math.random() > 0.5 ? 1 : -1);
-      const radius = randomRange(windowMinSize * 0.001, windowMinSize);
+      const radius = randomRange(windowMinSize * 0.001, windowMinSize * 0.5);
       const radiusRange = randomRange(
         windowMinSize * 0.001,
-        windowMinSize * 0.1
+        windowMinSize * 0.05
       );
       const minRadius = radius - radiusRange / 2;
       const maxRadius = radius + radiusRange / 2;
@@ -119,7 +119,7 @@ export default class Particles {
 
     // create a material for the particles
     const particleMaterial = new THREE.PointsMaterial({
-      size: 0.01,
+      size: 0.03,
       vertexColors: true,
       transparent: true,
       opacity: 1,
@@ -132,8 +132,6 @@ export default class Particles {
 
   drawParticles(x, y, liveliness) {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-
-    const minDistanceToTarget = 50; // Minimum distance to target before changing direction
 
     for (let i = 0; i < this.particleCount; i++) {
       const particle = this.particles[i];
@@ -157,11 +155,6 @@ export default class Particles {
         Math.pow(particle.x - particle.targetX, 2) +
           Math.pow(particle.y - particle.targetY, 2)
       );
-
-      // If the particle is too close to the target, reverse its direction
-      // if (targetDistance < minDistanceToTarget) {
-      //   particle.direction *= -1;
-      // }
 
       // Update the particle's position based on the eased target position
       const dTheta = particle.speed * particle.direction * liveliness;
