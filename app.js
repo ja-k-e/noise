@@ -4,6 +4,31 @@ import Sound from "./Sound.js";
 const canvas = document.querySelector("canvas");
 canvas.addEventListener("dragstart", (e) => e.preventDefault());
 
+function preventPullToRefresh(element) {
+  var prevent = false;
+
+  element.addEventListener("touchstart", function (e) {
+    if (e.touches.length !== 1) {
+      return;
+    }
+
+    var scrollY =
+      window.pageYOffset ||
+      document.body.scrollTop ||
+      document.documentElement.scrollTop;
+    prevent = scrollY === 0;
+  });
+
+  element.addEventListener("touchmove", function (e) {
+    if (prevent) {
+      prevent = false;
+      e.preventDefault();
+    }
+  });
+}
+
+preventPullToRefresh(canvas);
+
 const particles = new Particles(canvas);
 
 let x = 0;
