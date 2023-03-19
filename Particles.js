@@ -30,19 +30,29 @@ function hslToRgb(h, s, l) {
   return [r, g, b];
 }
 
+const params = new URL(document.location).searchParams;
+const hueStart =
+  !params.get("hue") || isNaN(Number(params.get("hue")))
+    ? 210
+    : Number(params.get("hue"));
+const hueSpectrum =
+  !params.get("spectrum") || isNaN(Number(params.get("spectrum")))
+    ? 135
+    : Number(params.get("spectrum"));
+
 export default class Particles {
   constructor(canvas, particleCount) {
-    particleCount = particleCount || window.innerWidth * window.innerHeight * 0.01
-    this.canvas = canvas;
+    particleCount =
+      particleCount || window.innerWidth * window.innerHeight * 0.01;
     this.particleCount = particleCount;
     this.easingFactor = 0.08;
     this.noise2d = createNoise2D();
     this.noiseScale = 0.03;
 
-    this.initializeParticles();
+    this.initializeParticles(canvas);
   }
 
-  initializeParticles() {
+  initializeParticles(canvas) {
     this.scene = new THREE.Scene();
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -54,7 +64,7 @@ export default class Particles {
       -10000,
       10000
     );
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas });
+    this.renderer = new THREE.WebGLRenderer({ canvas });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
 
     // create a geometry with many particles
@@ -68,7 +78,7 @@ export default class Particles {
       const angle = randomRange(0, 2 * Math.PI);
       const angleSpeed =
         randomRange(0.001, 0.01) * (Math.random() > 0.5 ? 1 : -1);
-      const radius = randomRange(windowMinSize * 0.001, windowMinSize * 0.5);
+      const radius = randomRange(windowMinSize * 0.001, windowMinSize * 0.25);
       const radiusRange = randomRange(
         windowMinSize * 0.001,
         windowMinSize * 0.05
@@ -143,8 +153,10 @@ export default class Particles {
         particle.x * this.noiseScale
       );
       // Ease the particle towards the new target position
-      const dx = x - particle.targetX + noiseX * 400;
-      const dy = y - particle.targetY + noiseY * 400;
+      const dx =
+        x - particle.targetX + noiseX * this.renderer.domElement.width * 0.2;
+      const dy =
+        y - particle.targetY + noiseY * this.renderer.domElement.height * 0.2;
       particle.targetX += dx * (Math.random() * this.easingFactor);
       particle.targetY += dy * (Math.random() * this.easingFactor);
 
@@ -187,9 +199,10 @@ export default class Particles {
       const py = particle.y + Math.sin(particle.angle) * particle.radius;
 
       // Calculate the hue, saturation, and lightness
-      const hue = (px / this.canvas.width) * 360 + 180;
+      const hue =
+        (px / this.renderer.domElement.width) * hueSpectrum + hueStart;
       const saturation = 1;
-      const lightness = 1 - (py / this.canvas.height) * 0.8 + 0.1;
+      const lightness = 1 - (py / this.renderer.domElement.height) * 0.8 + 0.1;
       // const alpha =
       //   1 - Math.min(1, (targetDistance - minDistanceToTarget) / 1000);
 

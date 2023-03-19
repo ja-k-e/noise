@@ -1,8 +1,31 @@
-import MusicalScale from "https://unpkg.com/musical-scale@1.0.4/index.js";
+import MusicalScale, {
+  STEP_NOTATIONS,
+  STEP_NOTATION_ALTERNATES,
+} from "https://unpkg.com/musical-scale@1.0.4/index.js";
 import NoteToFrequency from "./NoteToFrequency.js";
 
 const noteToFrequency = new NoteToFrequency();
-const scale = new MusicalScale({ root: "G", mode: "locrian" });
+const params = new URL(document.location).searchParams;
+const notations = STEP_NOTATIONS.concat(STEP_NOTATION_ALTERNATES);
+const modes = [
+  "major",
+  "ionian",
+  "dorian",
+  "phrygian",
+  "lydian",
+  "mixolydian",
+  "minor",
+  "aeolian",
+  "locrian",
+  "melodic",
+  "harmonic",
+];
+const root = notations.includes(params.get("root")) ? params.get("root") : "G";
+const mode = modes.includes(params.get("mode"))
+  ? params.get("mode")
+  : "locrian";
+
+const scale = new MusicalScale({ root, mode });
 
 export default class Sound {
   constructor() {
@@ -37,7 +60,6 @@ export default class Sound {
         this.interval = interval;
         this.updateOscillators();
         this.intervalChangeThreshold = 0;
-        // console.log("CHANGE TO", interval.notation);
       } else {
         this.intervalChangeThreshold++;
       }
@@ -48,14 +70,15 @@ export default class Sound {
 
   initializeOscillators() {
     this.oscillators = [];
-    for (let i = 1; i < 4; i++) {
-      const type = "triangle";
+    for (let i = 1; i < 5; i++) {
+      const type =
+        i < 2 ? "square" : i < 3 ? "sawtooth" : i < 4 ? "triangle" : "sine";
       for (let j = 0; j < 3; j++) {
         const oscillator = this.ctx.createOscillator();
         oscillator.type = type;
         this.oscillators.push(oscillator);
         const gainNode = this.ctx.createGain();
-        gainNode.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        gainNode.gain.setValueAtTime(i > 3 ? 0.075 : 0.1, this.ctx.currentTime);
         oscillator.connect(gainNode);
         gainNode.connect(this.mainNode);
       }
@@ -70,12 +93,15 @@ export default class Sound {
         `${notation}${baseOctave + octave}`
       );
       if (this.i === 0) {
-        oscillator.frequency.value = frequency;
+        oscillator.frequency.linearRampToValueAtTime(
+          frequency,
+          this.ctx.currentTime + 0.01
+        );
         oscillator.start(this.ctx.currentTime);
       } else {
         oscillator.frequency.linearRampToValueAtTime(
           frequency,
-          this.ctx.currentTime + 0.5
+          this.ctx.currentTime + (Math.random() * 0.5 + 0.25)
         );
       }
     });
