@@ -32,7 +32,7 @@ export default class Sound {
     this.ctx = new AudioContext();
     const mainOutputGainNode = this.ctx.createGain();
     mainOutputGainNode.connect(this.ctx.destination);
-    mainOutputGainNode.gain.setValueAtTime(0.95, this.ctx.currentTime);
+    mainOutputGainNode.gain.setValueAtTime(0.9, this.ctx.currentTime);
 
     this.bandPassFilterNode = this.ctx.createBiquadFilter();
     this.bandPassFilterNode.type = "bandpass";
