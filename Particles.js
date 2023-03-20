@@ -78,7 +78,7 @@ export default class Particles {
       const angle = randomRange(0, 2 * Math.PI);
       const angleSpeed =
         randomRange(0.001, 0.01) * (Math.random() > 0.5 ? 1 : -1);
-      const radius = randomRange(windowMinSize * 0.001, windowMinSize * 0.25);
+      const radius = randomRange(windowMinSize * 0.001, windowMinSize * 0.5);
       const radiusRange = randomRange(
         windowMinSize * 0.001,
         windowMinSize * 0.05
